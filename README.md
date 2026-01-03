@@ -12,11 +12,10 @@
 
 ---
 
-## 📌 Overview
+### 📌 Overview
 
-This project was developed as part of the **GCET Odoo Hackathon 2026**.  
-It demonstrates how **Odoo can be used to automate and manage real-world business workflows** with a focus on simplicity, scalability, and clean design.
-
+**DayFlow** is an activity management web application developed during the **Odoo Hackathon**, organized by Odoo.  
+The platform supports two user roles — **HR** and **Employee** — enabling structured tracking, management, and monitoring of daily activities in an organization.
 ---
 
 ## ✨ Key Features
