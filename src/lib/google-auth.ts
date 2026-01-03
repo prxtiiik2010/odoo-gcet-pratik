@@ -1,11 +1,10 @@
 // Google OAuth Configuration and Helper Functions
 
-// Demo Google Client ID - Replace with your actual Google OAuth Client ID
-// Get it from: https://console.cloud.google.com/apis/credentials
-export const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+// Your actual Google Client ID
+export const GOOGLE_CLIENT_ID = '656725352901-hhts2bhqdmqdqhl6ssqcvh2q4159pvkv.apps.googleusercontent.com';
 
 // For demo purposes, we'll use a mock client ID
-export const DEMO_GOOGLE_CLIENT_ID = '123456789-abcdefghijklmnop.apps.googleusercontent.com';
+export const DEMO_GOOGLE_CLIENT_ID = '656725352901-hhts2bhqdmqdqhl6ssqcvh2q4159pvkv.apps.googleusercontent.com';
 
 export interface GoogleUserInfo {
   email: string;

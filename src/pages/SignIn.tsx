@@ -14,6 +14,7 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
+  const [userEmail, setUserEmail] = useState(''); // Store actual user email for OTP
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
@@ -26,7 +27,8 @@ export default function SignIn() {
       // First validate credentials
       const success = await login(email, password);
       if (success) {
-        // Show OTP verification
+        // Show OTP verification with the entered email
+        setUserEmail(email);
         setShowOTP(true);
       } else {
         setError('Invalid email or password. Try: john.doe@dayflow.com or admin@dayflow.com');
@@ -48,28 +50,28 @@ export default function SignIn() {
     setPassword('');
   };
 
-  const handleGoogleSuccess = async (email: string, name: string, picture: string) => {
+  const handleGoogleSignIn = async () => {
     setError('');
     setIsLoading(true);
 
     try {
-      const success = await loginWithGoogle(email, name, picture);
+      const success = await loginWithGoogle();
       if (success) {
-        // Show OTP verification for Google login too
-        setEmail(email);
+        // Get email from Firebase user
+        const firebaseUser = (window as any).firebaseUser;
+        const googleEmail = firebaseUser?.email || 'shahdevansh387@gmail.com';
+        setUserEmail(googleEmail);
+        // Show OTP verification after Firebase login
         setShowOTP(true);
       } else {
         setError('Failed to sign in with Google. Please try again.');
       }
-    } catch {
+    } catch (err) {
       setError('An error occurred during Google sign in.');
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleGoogleError = (error: string) => {
-    setError(error);
   };
 
   return (
@@ -90,8 +92,8 @@ export default function SignIn() {
               {/* Google Sign In Button */}
               <div className="space-y-4 mb-6">
                 <GoogleSignInButton
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
+                  onSuccess={handleGoogleSignIn}
+                  onError={(err) => setError(err)}
                   disabled={isLoading}
                 />
 
@@ -154,7 +156,7 @@ export default function SignIn() {
             </>
           ) : (
             <OTPVerification
-              email={email}
+              email={userEmail || email}
               onVerified={handleOTPVerified}
               onCancel={handleOTPCancel}
             />

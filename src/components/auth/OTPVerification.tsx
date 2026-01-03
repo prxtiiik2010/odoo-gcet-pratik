@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, Clock, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock, RefreshCw, Mail } from 'lucide-react';
 import { otpGenerator } from '@/lib/otp';
+import { sendOTPEmail, type EmailOTPResponse } from '@/lib/email-otp';
 
 interface OTPVerificationProps {
   email: string;
@@ -17,11 +18,25 @@ export default function OTPVerification({ email, onVerified, onCancel }: OTPVeri
   const [isVerifying, setIsVerifying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
   const [currentOTP, setCurrentOTP] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailStatus, setEmailStatus] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  // Generate OTP on mount
+  // Generate OTP and send email on mount
   useEffect(() => {
-    const { code } = otpGenerator.generateOTP(email);
-    setCurrentOTP(code);
+    const generateAndSendOTP = async () => {
+      const { code } = otpGenerator.generateOTP(email);
+      setCurrentOTP(code);
+      
+      // Send OTP via email
+      setIsSendingEmail(true);
+      const result: EmailOTPResponse = await sendOTPEmail(email, code);
+      setEmailSent(result.success);
+      setEmailStatus(result.message);
+      setIsSendingEmail(false);
+    };
+
+    generateAndSendOTP();
   }, [email]);
 
   // Countdown timer
@@ -64,12 +79,19 @@ export default function OTPVerification({ email, onVerified, onCancel }: OTPVeri
     setIsVerifying(false);
   };
 
-  const handleResendOTP = () => {
+  const handleResendOTP = async () => {
     const { code } = otpGenerator.generateOTP(email);
     setCurrentOTP(code);
     setTimeLeft(120);
     setOtp('');
     setError('');
+    
+    // Send OTP via email again
+    setIsSendingEmail(true);
+    const result: EmailOTPResponse = await sendOTPEmail(email, code);
+    setEmailSent(result.success);
+    setEmailStatus(result.message);
+    setIsSendingEmail(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -82,24 +104,39 @@ export default function OTPVerification({ email, onVerified, onCancel }: OTPVeri
     <div className="space-y-6">
       <div className="text-center">
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-primary" />
+          <Mail className="w-8 h-8 text-primary" />
         </div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Verify Your Identity</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Verify Your Email</h3>
         <p className="text-sm text-muted-foreground">
-          Enter the 6-digit OTP sent to<br />
+          We've sent a 6-digit OTP code to<br />
           <span className="font-medium text-foreground">{email}</span>
         </p>
       </div>
 
-      {/* Demo OTP Display */}
-      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-        <AlertDescription className="text-center">
-          <p className="text-xs text-muted-foreground mb-1">Demo Mode - Your OTP is:</p>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-wider">
-            {currentOTP}
-          </p>
-        </AlertDescription>
-      </Alert>
+      {/* Email Status */}
+      {isSendingEmail && (
+        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <AlertDescription className="text-center text-sm">
+            📧 Sending OTP to your email...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {emailSent && !isSendingEmail && (
+        <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+          <AlertDescription className="text-center text-sm text-green-700 dark:text-green-400">
+            ✅ {emailStatus || 'OTP sent successfully to your email!'}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!emailSent && !isSendingEmail && (
+        <Alert variant="destructive">
+          <AlertDescription className="text-center text-sm">
+            ⚠️ {emailStatus || 'Failed to send OTP. Please try resending.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* OTP Input */}
       <div className="flex flex-col items-center space-y-4">
@@ -152,10 +189,10 @@ export default function OTPVerification({ email, onVerified, onCancel }: OTPVeri
           variant="outline"
           onClick={handleResendOTP}
           className="w-full"
-          disabled={timeLeft > 90} // Can resend after 30 seconds
+          disabled={timeLeft > 90 || isSendingEmail} // Can resend after 30 seconds
         >
           <RefreshCw className="w-4 h-4 mr-2" />
-          Resend OTP
+          {isSendingEmail ? 'Sending...' : 'Resend OTP'}
         </Button>
 
         <Button

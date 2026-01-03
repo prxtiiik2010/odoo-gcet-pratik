@@ -1,10 +1,9 @@
-import { useGoogleLogin } from '@react-oauth/google';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface GoogleSignInButtonProps {
-  onSuccess: (email: string, name: string, picture: string) => void;
+  onSuccess: () => void;
   onError?: (error: string) => void;
   disabled?: boolean;
 }
@@ -12,41 +11,25 @@ interface GoogleSignInButtonProps {
 export default function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignInButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true);
-      try {
-        // Fetch user info from Google
-        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const userInfo = await response.json();
-          onSuccess(userInfo.email, userInfo.name, userInfo.picture);
-        } else {
-          onError?.('Failed to fetch user information');
-        }
-      } catch (error) {
-        console.error('Google login error:', error);
-        onError?.('An error occurred during Google sign in');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: () => {
-      onError?.('Google sign in was cancelled or failed');
-    },
-  });
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      // The actual sign-in is handled by the parent component
+      onSuccess();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Google sign in failed';
+      onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Button
       type="button"
       variant="outline"
       className="w-full h-10 relative"
-      onClick={() => login()}
+      onClick={handleGoogleSignIn}
       disabled={disabled || isLoading}
     >
       {isLoading ? (

@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { User as FirebaseUser, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import { User, employees } from '@/lib/mock-data';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  loginWithGoogle: (email: string, name: string, picture: string) => Promise<boolean>;
-  logout: () => void;
+  loginWithGoogle: () => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,33 +35,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   }, []);
 
-  const loginWithGoogle = useCallback(async (email: string, name: string, picture: string): Promise<boolean> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if user exists in our system
-    let foundUser = employees.find(emp => emp.email.toLowerCase() === email.toLowerCase());
-    
-    // If user doesn't exist, create a new user profile (demo mode)
-    if (!foundUser) {
-      foundUser = {
-        id: `google-${Date.now()}`,
-        name: name,
-        email: email,
-        role: 'employee' as const,
-        department: 'General',
-        avatar: picture,
-      };
+  const loginWithGoogle = useCallback(async (): Promise<boolean> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      
+      // Check if user exists in our system or create new profile
+      let foundUser = employees.find(emp => emp.email.toLowerCase() === firebaseUser.email?.toLowerCase());
+      
+      if (!foundUser) {
+        foundUser = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          role: 'employee' as const,
+          department: 'General',
+          avatar: firebaseUser.photoURL || '',
+        };
+      }
+      
+      setUser(foundUser);
+      localStorage.setItem('dayflow_user', JSON.stringify(foundUser));
+      return true;
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      return false;
     }
-    
-    setUser(foundUser);
-    localStorage.setItem('dayflow_user', JSON.stringify(foundUser));
-    return true;
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('dayflow_user');
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      localStorage.removeItem('dayflow_user');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   }, []);
 
   return (
